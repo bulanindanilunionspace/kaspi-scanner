@@ -28,6 +28,7 @@
   <input id="num" inputmode="text" autocomplete="off" placeholder="или введите номер заказа">
   <button type="submit">Найти</button>
 </form>
+<div style="margin-top:12px;text-align:center;font-size:12px;color:var(--hint)">версия 3</div>
 <script>
 const tg = window.Telegram && Telegram.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
@@ -46,7 +47,8 @@ function parse(text) {
 let sent = false, stream = null;
 function send(num) {
   if (sent) return;
-  if (!tg || !tg.initData) { msg("Откройте сканер кнопкой «📷 Сканировать» в боте", true); return; }
+  // кнопка внизу чата не даёт initData — проверяем только, что страница открыта внутри Telegram
+  if (!tg || !tg.sendData || tg.platform === "unknown") { msg("Откройте сканер кнопкой «📷 Сканировать» в боте", true); return; }
   sent = true;
   try { tg.HapticFeedback.notificationOccurred("success"); } catch (e) {}
   if (stream) stream.getTracks().forEach(t => t.stop());
