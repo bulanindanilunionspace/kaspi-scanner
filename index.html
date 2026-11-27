@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Сканер заказа</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root { --bg: var(--tg-theme-bg-color, #fff); --fg: var(--tg-theme-text-color, #111); --hint: var(--tg-theme-hint-color, #888);
+          --btn: var(--tg-theme-button-color, #2481cc); --btn-fg: var(--tg-theme-button-text-color, #fff); --sec: var(--tg-theme-secondary-bg-color, #f2f2f2); }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 16px/1.4 -apple-system, system-ui, sans-serif; }
+  #reader { width: 100%; border-radius: 12px; overflow: hidden; background: #000; min-height: 220px; }
+  #msg { margin: 12px 0; min-height: 22px; color: var(--hint); text-align: center; }
+  #msg.err { color: #d33; }
+  form { display: flex; gap: 8px; }
+  input { flex: 1; min-width: 0; padding: 12px; font-size: 16px; border: 0; border-radius: 10px; background: var(--sec); color: var(--fg); }
+  button { padding: 12px 16px; font-size: 16px; border: 0; border-radius: 10px; background: var(--btn); color: var(--btn-fg); }
+</style>
+</head>
+<body>
+<div id="reader"></div>
+<div id="msg">Наведите камеру на верхний штрихкод наклейки Kaspi</div>
+<form id="f">
+  <input id="num" inputmode="text" autocomplete="off" placeholder="или введите номер заказа">
+  <button type="submit">Найти</button>
+</form>
+<script>
+const tg = window.Telegram && Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+const msg = (t, err) => { const m = document.getElementById("msg"); m.textContent = t; m.className = err ? "err" : ""; };
+
+// Номер заказа из кода: Kaspi — 6–12 цифр или как на наклейке (1 142 251 878-1-R-1), Intertop — I-42647317.
+function parse(text) {
+  const t = String(text || "").replace(/\s+/g, "");
+  const label = t.match(/^(\d{6,12})-?\d-?[RrКк]-?\d+$/);
+  if (label) return label[1];
+  if (/^\d{6,12}$/.test(t)) return t;
+  if (/^[IiИи]-?\d{5,}$/.test(t)) return t;
+  return null;
+}
+
+let sent = false, scanner = null;
+function send(num) {
+  if (sent) return;
+  if (!tg || !tg.initData) { msg("Откройте сканер кнопкой «📷 Сканировать» в боте", true); return; }
+  sent = true;
+  try { tg.HapticFeedback.notificationOccurred("success"); } catch (e) {}
+  const done = () => tg.sendData(num);
+  scanner && scanner.isScanning ? scanner.stop().then(done, done) : done();
+}
+
+document.getElementById("f").addEventListener("submit", e => {
+  e.preventDefault();
+  const v = document.getElementById("num").value;
+  const n = parse(v);
+  n ? send(n) : msg("Номер заказа — 6–12 цифр (Kaspi) или I-… (Intertop)", true);
+});
+
+let lastBad = "";
+try {
+  const F = Html5QrcodeSupportedFormats;
+  scanner = new Html5Qrcode("reader", { formatsToSupport: [F.CODE_128, F.CODE_39, F.EAN_13, F.ITF, F.QR_CODE], verbose: false });
+  scanner.start({ facingMode: "environment" },
+    { fps: 10, qrbox: (w, h) => ({ width: Math.floor(w * 0.9), height: Math.floor(Math.min(h, w) * 0.45) }) },
+    text => {
+      const n = parse(text);
+      if (n) { msg("Найдено: " + n); send(n); }
+      else if (text !== lastBad) { lastBad = text; msg("Это не номер заказа (" + text.slice(0, 40) + "). Наведите на верхний штрихкод", true); }
+    },
+    () => {}
+  ).catch(() => msg("Камера недоступна — разрешите доступ к камере или введите номер вручную", true));
+} catch (e) {
+  msg("Камера недоступна — введите номер вручную", true);
+}
+</script>
+</body>
+</html>
