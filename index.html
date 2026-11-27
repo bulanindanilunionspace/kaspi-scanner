@@ -23,7 +23,7 @@
 </head>
 <body>
 <div id="reader"><video id="v" playsinline muted autoplay></video><div id="frame"></div></div>
-<div id="msg">Наведите рамку на штрихкод или QR наклейки возврата Kaspi</div>
+<div id="msg">Наведите рамку на штрихкод или QR наклейки Kaspi (…-1-R-1)</div>
 <form id="f">
   <input id="num" inputmode="text" autocomplete="off" placeholder="или введите номер заказа">
   <button type="submit">Найти</button>
@@ -34,7 +34,7 @@ const tg = window.Telegram && Telegram.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 const msg = (t, err) => { const m = document.getElementById("msg"); m.textContent = t; m.className = err ? "err" : ""; };
 
-// Камера: только наклейка возврата Kaspi (1142251878-1-R-1) — новые заказы Kaspi, накладные Intertop/EMEX не берём.
+// Камера: только наклейка Kaspi с R (1142251878-1-R-1) — новые заказы Kaspi, накладные Intertop/EMEX не берём.
 function parseScan(text) {
   const m = String(text || "").replace(/\s+/g, "").match(/^(\d{6,12})-?\d-?[RrКк]-?\d+$/);
   return m ? m[1] : null;
@@ -98,7 +98,7 @@ async function tick() {
       if (r) {
         const n = parseScan(r.text);
         if (n) { msg("Найдено: " + n); send(n); return; }
-        if (r.text !== lastBad) { lastBad = r.text; msg("Это не наклейка возврата Kaspi (" + r.text.slice(0, 40) + ")", true); }
+        if (r.text !== lastBad) { lastBad = r.text; msg("Это не наклейка Kaspi …-R-… (" + r.text.slice(0, 40) + ")", true); }
       }
       if (++frames % 10 === 0) ver("кадров: " + frames + " · " + w + "×" + h);
     } catch (e) { const t = String(e); if (t !== lastErr) { lastErr = t; msg("Ошибка распознавания: " + t.slice(0, 80), true); } }
@@ -111,7 +111,7 @@ async function tick() {
     stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
     video.srcObject = stream;
     await video.play();
-    msg("Наведите рамку на штрихкод или QR наклейки возврата Kaspi");
+    msg("Наведите рамку на штрихкод или QR наклейки Kaspi (…-1-R-1)");
     tick();
   } catch (e) {
     msg("Камера недоступна — разрешите доступ к камере или введите номер вручную", true);
