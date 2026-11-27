@@ -28,7 +28,7 @@
   <input id="num" inputmode="text" autocomplete="off" placeholder="или введите номер заказа">
   <button type="submit">Найти</button>
 </form>
-<div id="ver" style="margin-top:12px;text-align:center;font-size:12px;color:var(--hint)">версия 5</div>
+<div id="ver" style="margin-top:12px;text-align:center;font-size:12px;color:var(--hint)">версия 6</div>
 <script>
 const tg = window.Telegram && Telegram.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
@@ -37,7 +37,8 @@ const msg = (t, err) => { const m = document.getElementById("msg"); m.textConten
 // Номер заказа из кода: Kaspi — 6–12 цифр или как на наклейке (1 142 251 878-1-R-1), Intertop — I-42647317.
 function parse(text) {
   const t = String(text || "").replace(/\s+/g, "");
-  const label = t.match(/^(\d{6,12})-?\d-?[RrКк]-?\d+$/);
+  // наклейка Kaspi: 1142251878-1-R-1 или 1165627788-1; накладная EMEX (Intertop, STOREXX) — 500… из 10 цифр, бот ищет её сам
+  const label = t.match(/^(\d{6,12})-?\d-?[RrКк]-?\d+$/) || t.match(/^(\d{6,12})-\d{1,2}$/);
   if (label) return label[1];
   if (/^\d{6,12}$/.test(t)) return t;
   if (/^[IiИи]-?\d{5,}$/.test(t)) return t;
@@ -73,7 +74,7 @@ const OPTS = { formats: ["Code128", "QRCode", "EAN13", "ITF", "Code39"], tryHard
 
 // распознаватель (zxing-wasm 3.1.5) лежит рядом со страницей, не на CDN
 let ready = false, frames = 0, lastErr = "";
-const ver = t => document.getElementById("ver").textContent = "версия 5 · " + t;
+const ver = t => document.getElementById("ver").textContent = "версия 6 · " + t;
 ZXingWASM.prepareZXingModule({
   overrides: { locateFile: (path, prefix) => path.endsWith(".wasm") ? new URL("zxing_reader.wasm?v=4", location.href).href : prefix + path },
   fireImmediately: true,
@@ -107,7 +108,7 @@ async function tick() {
     stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
     video.srcObject = stream;
     await video.play();
-    msg("Наведите рамку на верхний штрихкод наклейки Kaspi");
+    msg("Наведите рамку на штрихкод наклейки Kaspi или накладной EMEX");
     tick();
   } catch (e) {
     msg("Камера недоступна — разрешите доступ к камере или введите номер вручную", true);
